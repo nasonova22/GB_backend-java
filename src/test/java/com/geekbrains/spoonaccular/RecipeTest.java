@@ -21,32 +21,22 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 
-public class RecipeTest {
-    private static final String API_KEY="0e236d5d78344b82a63393add595f905";
+public class RecipeTest extends SpoonaccularTest {
 
 
-    @BeforeAll
-    static void beforeAll() {
-        RestAssured.baseURI=("https://api.spoonacular.com/recipes");
-    }
     @Test
     @DisplayName("В 2.5 чашках содержится 500г сахара ")
     void testConvertAmounts() {
         String actually;
         actually = given()
-                .log()
-                .all()
-                .param("apiKey", API_KEY)
                 .param("ingredientName","sugar")
                 .param("sourceAmount", 2.5)
                 .param("sourceUnit","cups")
                 .param("targetUnit","gram")
                 .expect()
-                .log()
-                .body()
                 .body("targetAmount",is(500.0F) )
                 .when()
-                .get("convert")
+                .get("recipes/convert")
                 .body()
                 .prettyPrint();
     }
@@ -54,15 +44,10 @@ public class RecipeTest {
     @DisplayName("Cумма цен всех ингредиентов должна быть равна итоговой сумме")
     void testPriceBreakdownByIDEqualsTotalCost() {
         DataIngredientsResponse response = given()
-                .log()
-                .all()
-                .param("apiKey", API_KEY)
                 .pathParam("id","1003464")
                 .expect()
-                .log()
-                .body()
                 .when()
-                .get("{id}/priceBreakdownWidget.json")
+                .get("recipes/{id}/priceBreakdownWidget.json")
                 .as(DataIngredientsResponse.class);
         double sum=response.getIngredients()
                 .stream()
@@ -74,15 +59,10 @@ public class RecipeTest {
     @DisplayName("У продукта яичные белки кол-во только в штуках")
     void testPriceBreakdownByIDEquals()  {
         DataIngredientsResponse response = given()
-                .log()
-                .all()
-                .param("apiKey", API_KEY)
                 .pathParam("id","1003464")
                 .expect()
-                .log()
-                .body()
                 .when()
-                .get("{id}/priceBreakdownWidget.json")
+                .get("recipes/{id}/priceBreakdownWidget.json")
                 .as(DataIngredientsResponse.class);
         response.getIngredients()
                 .stream()
@@ -97,46 +77,26 @@ public class RecipeTest {
     void testSearchGroceryProducts()throws IOException {
         String actually;
         actually = given()
-                .log()
-                .all()
-                .param("apiKey", API_KEY)
-                .param("query", "Pizza")
+                .queryParam("query", "Pizza")
                 .param("number","2")
                 .expect()
-                .log()
-                .body()
                 .when()
-                .get("/search")
+                .get("recipes/search")
                 .prettyPrint();
-        String expected=getRecourceAsString("testSearchGroceryProducts/expected.json");
-        JsonAssert.assertJsonEquals(expected, actually, JsonAssert.when(Option.IGNORING_ARRAY_ORDER));
+        String expected=getRecource("expected.json");
+        assertJson (expected, actually);
     }
 
-        public String getRecourceAsString (String resource) throws IOException, NullPointerException {
-            InputStream stream = getClass().getResourceAsStream(resource);
-            ByteArrayOutputStream buffer=new ByteArrayOutputStream();
-            int i;
-            while (( i = stream.read()) != -1) {
-                buffer.write((byte) i);
-            }
-            byte[] bytes=buffer.toByteArray();
-            return new String(bytes, StandardCharsets.UTF_8);
-        }
 
     @Test
     @DisplayName("Проверка анализ рецепта по составляющим")
     void testAnalyzeRecipeSearchQuery () {
         JsonPath actually;
         actually = given()
-                .log()
-                .all()
-                .param("apiKey", API_KEY)
                 .queryParam("q", "salmon%+fusilly")
                 .expect()
-                .log()
-                .body()
                 .when()
-                .get("/queries/analyze")
+                .get("recipes/queries/analyze")
                 .body()
                 .jsonPath();
         assertThat(actually.get("ingredients[0].name"), equalTo("fusilli"));
